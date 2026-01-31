@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCQL Playground - CTF Challenge</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .ctf-progress { display: flex; gap: 10px; align-items: center; }
+        
+        .flag-counter {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 140px);
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-title { font-size: 1rem; font-weight: 600; color: #00d4ff; }
+        .panel-content { flex: 1; overflow: auto; padding: 15px; }
+        .query-section { margin-bottom: 15px; }
+        
+        .query-input {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+            color: #58a6ff;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .query-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        
+        .query-input::placeholder { color: #6e7681; }
+        .controls { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); }
+        .data-type-tabs { display: flex; gap: 5px; }
+        
+        .tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #8b949e;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        
+        .results-info {
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+        
+        .results-count { color: #00d4ff; font-weight: 600; }
+        
+        .error-message {
+            color: #f85149;
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .results-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        
+        .results-table th {
+            position: sticky;
+            top: 0;
+            background: #161b22;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #00d4ff;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .results-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .results-table tr:hover td { background: rgba(0, 212, 255, 0.05); }
+        
+        .challenges-list { display: flex; flex-direction: column; gap: 15px; }
+        
+        .challenge-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+        
+        .challenge-card.solved {
+            border-color: #7ee787;
+            background: rgba(126, 231, 135, 0.05);
+        }
+        
+        .challenge-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .challenge-title { font-weight: 600; color: #e0e0e0; }
+        
+        .challenge-difficulty {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        
+        .difficulty-easy { background: rgba(126, 231, 135, 0.2); color: #7ee787; }
+        .difficulty-medium { background: rgba(240, 136, 62, 0.2); color: #f0883e; }
+        .difficulty-hard { background: rgba(248, 81, 73, 0.2); color: #f85149; }
+        
+        .challenge-description { font-size: 0.9rem; color: #8b949e; margin-bottom: 10px; }
+        
+        .challenge-hint {
+            font-size: 0.8rem;
+            color: #6e7681;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .challenge-hint:hover { color: #8b949e; }
+        
+        .hint-text {
+            display: none;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #00d4ff;
+        }
+        
+        .hint-text.visible { display: block; }
+        
+        .flag-input-section {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .flag-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        
+        .flag-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        
+        .flag-input::placeholder { color: #6e7681; }
+        
+        .btn-submit {
+            padding: 8px 16px;
+            background: #7c3aed;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .btn-submit:hover { background: #6d28d9; }
+        
+        .challenge-solved-flag {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(126, 231, 135, 0.1);
+            border-radius: 6px;
+            color: #7ee787;
+            font-family: monospace;
+            display: none;
+        }
+        
+        .challenge-card.solved .challenge-solved-flag { display: block; }
+        .challenge-card.solved .flag-input-section { display: none; }
+        .solved-badge { display: none; color: #7ee787; font-size: 0.8rem; }
+        .challenge-card.solved .solved-badge { display: inline; }
+        
+        .quick-ref { font-size: 0.85rem; }
+        .quick-ref h4 { color: #00d4ff; margin-bottom: 10px; font-size: 0.9rem; }
+        .quick-ref-section { margin-bottom: 15px; }
+        
+        .quick-ref code {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #58a6ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+        
+        .quick-ref ul { list-style: none; margin-left: 0; }
+        .quick-ref li { padding: 4px 0; color: #8b949e; }
+        .mode-toggle { display: flex; gap: 5px; margin-left: 10px; }
+
+        .wrong-flag {
+            animation: shake 0.5s;
+            border-color: #f85149 !important;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @media (max-width: 1200px) {
+            .main-content { grid-template-columns: 1fr; height: auto; }
+            .panel { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">GCQL Playground - CTF Challenge</div>
+            <div class="ctf-progress">
+                <div class="flag-counter">
+                    Flags: <span id="flagCount">0</span> / <span id="totalFlags">8</span>
+                </div>
+                <button class="btn btn-secondary" onclick="resetProgress()">Reset Progress</button>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Query Editor</span>
+                    <div class="data-type-tabs">
+                        <button class="tab active" data-type="logs" onclick="switchDataType('logs')">Logs</button>
+                        <button class="tab" data-type="traces" onclick="switchDataType('traces')">Traces</button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="query-section">
+                        <textarea class="query-input" id="queryInput" placeholder="Enter your GCQL query...&#10;Examples:&#10;  timeout                         (searches content field)&#10;  level:ERROR workload:api*&#10;  &quot;connection refused&quot; level:ERROR&#10;  * | stats by (workload) count()"></textarea>
+                        <div class="controls">
+                            <button class="btn btn-primary" onclick="runQuery()">Run Query (Ctrl+Enter)</button>
+                            <button class="btn btn-secondary" onclick="clearQuery()">Clear</button>
+                            <div class="mode-toggle">
+                                <button class="tab active" id="tableViewBtn" onclick="setViewMode('table')">Table</button>
+                                <button class="tab" id="jsonViewBtn" onclick="setViewMode('json')">JSON</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+                    
+                    <div class="results-info">
+                        <span class="results-count" id="resultsCount">0</span> results
+                        <span id="queryTime"></span>
+                    </div>
+                    
+                    <div id="resultsContainer" style="overflow: auto; max-height: 500px;">
+                        <table class="results-table" id="resultsTable">
+                            <thead id="tableHeader"></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                        <div id="jsonView" style="display: none; background: #0d1117; border-radius: 8px; padding: 15px; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; color: #8b949e;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">CTF Challenges</span>
+                </div>
+                <div class="panel-content">
+                    <div class="challenges-list" id="challengesList"></div>
+                    
+                    <div class="quick-ref" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <h4>Quick Reference</h4>
+                        <div class="quick-ref-section">
+                            <strong>Freetext Search:</strong>
+                            <ul>
+                                <li><code>timeout</code> - searches content field</li>
+                                <li><code>"connection refused"</code> - phrase search</li>
+                            </ul>
+                        </div>
+                        <div class="quick-ref-section">
+                            <strong>Field Filters:</strong>
+                            <ul>
+                                <li><code>field:value</code> - contains</li>
+                                <li><code>field=value</code> - exact match</li>
+                                <li><code>field>N</code> <code>>=</code> <code>&lt;</code> <code>&lt;=</code></li>
+                                <li><code>field:~"regex"</code> - regex</li>
+                                <li><code>field:in(a,b,c)</code> - multiple values</li>
+                                <li><code>NOT</code> <code>!</code> <code>-</code> - negation</li>
+                            </ul>
+                        </div>
+                        <div class="quick-ref-section">
+                            <strong>Pipes:</strong>
+                            <ul>
+                                <li><code>| stats by (x) count()</code></li>
+                                <li><code>| sort by (x) desc</code></li>
+                                <li><code>| filter expr</code></li>
+                                <li><code>| limit N</code></li>
+                            </ul>
+                        </div>
+                        <div class="quick-ref-section">
+                            <strong>Common Fields:</strong>
+                            <ul>
+                                <li><code>content</code> - log message</li>
+                                <li><code>workload</code> - service name</li>
+                                <li><code>namespace</code> - k8s namespace</li>
+                                <li><code>level</code> - DEBUG/INFO/WARN/ERROR/FATAL</li>
+                                <li><code>duration_seconds</code> - request duration</li>
+                                <li><code>status_code</code> - HTTP status</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const workloads = ['api-gateway', 'user-api', 'payment-processor', 'order-manager', 'inventory-sync', 'notification-worker', 'auth-server', 'search-indexer', 'cache-warmer', 'metrics-collector'];
+        const namespaces = ['production', 'staging', 'development', 'kube-system', 'monitoring', 'istio-system'];
+        const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
+        const statusCodes = [200, 201, 204, 301, 400, 401, 403, 404, 429, 500, 502, 503, 504];
+        const clusters = ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1'];
+        const pods = () => `pod-${Math.random().toString(36).substring(2, 8)}`;
+        
+        const flagSecrets = [
+            'GC{b4s1c_f1lt3r_m4st3r}',
+            'GC{r3g3x_w1z4rd_2024}',
+            'GC{monitoring}',
+            'GC{t1m3_buck3t_n1nj4}',
+            'GC{cr0ss_s1gn4l_hunt3r}',
+            'GC{h1dd3n_1n_pl41n_s1ght}',
+            'GC{c0rr3l4t10n_k1ng}',
+            'GC{ult1m4t3_0bs3rv3r}'
+        ];
+        
+        const challenges = [
+            { 
+                id: 1, 
+                title: "Challenge 1: The Needle", 
+                description: "Find the single ERROR log from 'payment-processor' in 'production' where content contains 'timeout' AND duration_seconds > 5. The flag is hidden in the 'trace_id' field - decode it from base64.", 
+                hint: "Try: timeout level:ERROR workload:payment-processor namespace:production duration_seconds>5 (freetext 'timeout' searches content)",
+                difficulty: "medium"
+            },
+            { 
+                id: 2, 
+                title: "Challenge 2: Pattern Recognition", 
+                description: "Find logs where content matches a credit card pattern (4 groups of 4 digits separated by dashes). The flag is the 'request_id' field value.", 
+                hint: "Use regex on content: content:~\"\\\\d{4}-\\\\d{4}-\\\\d{4}-\\\\d{4}\"",
+                difficulty: "medium"
+            },
+            { 
+                id: 3, 
+                title: "Challenge 3: The Aggregator", 
+                description: "Which namespace has exactly 42 ERROR logs? Use stats aggregation to find it. The flag format is GC{namespace_name_42}.", 
+                hint: "Use: * | stats by (namespace) count() if (level:ERROR) as errors | filter errors=42",
+                difficulty: "hard"
+            },
+            { 
+                id: 4, 
+                title: "Challenge 4: Time Traveler", 
+                description: "Find the workload in the logs table with the highest max duration. The flag is hidden in the pod_name of the slowest request from that workload.", 
+                hint: "Use Logs tab. First: * | stats by (workload) max(duration_seconds) | sort by (max_duration_seconds) desc. Then query that workload sorted by duration and read pod_name from the top row.",
+                difficulty: "hard"
+            },
+            { 
+                id: 5, 
+                title: "Challenge 5: Cross-Signal Correlation", 
+                description: "Find the trace_id that appears in BOTH logs AND traces with an error. Then find the 'secret' field in the matching trace.", 
+                hint: "Logs: level:ERROR | fields trace_id — pick a trace_id. Traces: trace_id:<that_value> error:true | fields secret",
+                difficulty: "hard"
+            },
+            { 
+                id: 6, 
+                title: "Challenge 6: The Invisible", 
+                description: "There's a log with level 'HIDDEN' (not in the normal level list). Find it. The content contains the flag.", 
+                hint: "Try: level:HIDDEN or use negation: NOT level:in(DEBUG,INFO,WARN,ERROR,FATAL)",
+                difficulty: "medium"
+            },
+            { 
+                id: 7, 
+                title: "Challenge 7: The Chain", 
+                description: "Find the 503 error in api-gateway. Its parent_span_id points to the root cause. Search traces for that span_id to find which workload failed. Flag format: GC{workload-name_upstream}.", 
+                hint: "Find status_code:503 workload:api-gateway, get parent_span_id, then search traces: span_id:<that_value>",
+                difficulty: "hard"
+            },
+            { 
+                id: 8, 
+                title: "Challenge 8: The Ultimate", 
+                description: "Find logs where (status_code>=500 OR level:ERROR) AND duration_seconds>1 AND namespace NOT in (kube-system, istio-system). Group by workload+cluster, find the combination with count>10. The flag is in the pod_name of the first log from that workload/cluster combo.", 
+                hint: "Complex aggregation, then drill down. The pod_name contains the encoded flag.",
+                difficulty: "hard"
+            }
+        ];
+        
+        function generateLogs() {
+            const logs = [];
+            const now = Date.now();
+            
+            const namespacesForRandom = namespaces.filter(n => n !== 'monitoring');
+            for (let i = 0; i < 800; i++) {
+                const level = levels[Math.floor(Math.random() * levels.length)];
+                const workload = workloads[Math.floor(Math.random() * workloads.length)];
+                const namespace = namespacesForRandom[Math.floor(Math.random() * namespacesForRandom.length)];
+                logs.push({
+                    timestamp: new Date(now - Math.random() * 7200000).toISOString(),
+                    level: level,
+                    workload: workload,
+                    namespace: namespace,
+                    cluster: clusters[Math.floor(Math.random() * clusters.length)],
+                    pod_name: pods(),
+                    content: generateContent(level, workload),
+                    duration_seconds: parseFloat((Math.random() * 3).toFixed(3)),
+                    status_code: statusCodes[Math.floor(Math.random() * statusCodes.length)],
+                    request_id: `req-${Math.random().toString(36).substring(2, 10)}`,
+                    trace_id: `trace-${Math.random().toString(36).substring(2, 12)}`,
+                    span_id: `span-${Math.random().toString(36).substring(2, 10)}`,
+                    parent_span_id: Math.random() > 0.5 ? `span-${Math.random().toString(36).substring(2, 10)}` : null
+                });
+            }
+            
+            // Challenge 1: Specific error with flag in trace_id (base64 encoded)
+            logs.push({
+                timestamp: new Date(now - 500000).toISOString(),
+                level: "ERROR",
+                workload: "payment-processor",
+                namespace: "production",
+                cluster: "us-east-1",
+                pod_name: "pod-pay-7x9k2",
+                content: "Connection timeout while processing payment gateway request",
+                duration_seconds: 5.847,
+                status_code: 504,
+                request_id: "req-timeout-001",
+                trace_id: btoa(flagSecrets[0]),
+                span_id: "span-ch1-abc",
+                parent_span_id: "span-gateway-parent"
+            });
+            
+            // Challenge 2: Credit card pattern in content
+            logs.push({
+                timestamp: new Date(now - 600000).toISOString(),
+                level: "WARN",
+                workload: "payment-processor",
+                namespace: "production",
+                cluster: "us-west-2",
+                pod_name: "pod-pay-m3k9",
+                content: "PCI scan detected unmasked card pattern: 4532-1234-5678-9012 in request body",
+                duration_seconds: 0.023,
+                status_code: 200,
+                request_id: flagSecrets[1],
+                trace_id: "trace-pci-scan",
+                span_id: "span-ch2-def",
+                parent_span_id: null
+            });
+            
+            // Challenge 3: Exactly 42 errors in 'monitoring' namespace
+            for (let i = 0; i < 42; i++) {
+                logs.push({
+                    timestamp: new Date(now - 100000 - i * 1000).toISOString(),
+                    level: "ERROR",
+                    workload: workloads[Math.floor(Math.random() * workloads.length)],
+                    namespace: "monitoring",
+                    cluster: clusters[Math.floor(Math.random() * clusters.length)],
+                    pod_name: pods(),
+                    content: `Monitoring error ${i + 1}`,
+                    duration_seconds: parseFloat((Math.random() * 2).toFixed(3)),
+                    status_code: 500,
+                    request_id: `req-mon-${i}`,
+                    trace_id: `trace-mon-${i}`,
+                    span_id: `span-mon-${i}`,
+                    parent_span_id: null
+                });
+            }
+            
+            // Challenge 4: Slowest workload is cache-warmer, flag in pod_name
+            for (let i = 0; i < 15; i++) {
+                logs.push({
+                    timestamp: new Date(now - 200000 - i * 5000).toISOString(),
+                    level: "WARN",
+                    workload: "cache-warmer",
+                    namespace: "production",
+                    cluster: "eu-west-1",
+                    pod_name: i === 0 ? flagSecrets[3] : pods(),
+                    content: "Cache warming operation taking longer than expected",
+                    duration_seconds: i === 0 ? 45.678 : parseFloat((10 + Math.random() * 20).toFixed(3)),
+                    status_code: 200,
+                    request_id: `req-cache-${i}`,
+                    trace_id: `trace-cache-${i}`,
+                    span_id: `span-cache-${i}`,
+                    parent_span_id: null
+                });
+            }
+            
+            // Challenge 5: Cross-signal correlation - error in both logs and traces
+            logs.push({
+                timestamp: new Date(now - 300000).toISOString(),
+                level: "ERROR",
+                workload: "order-manager",
+                namespace: "production",
+                cluster: "us-east-1",
+                pod_name: "pod-order-x7y2",
+                content: "Failed to process order: inventory check failed",
+                duration_seconds: 2.341,
+                status_code: 500,
+                request_id: "req-order-fail",
+                trace_id: "trace-correlated-error-xyz",
+                span_id: "span-ch5-order",
+                parent_span_id: "span-ch5-inventory"
+            });
+            
+            // Challenge 6: Hidden level
+            logs.push({
+                timestamp: new Date(now - 400000).toISOString(),
+                level: "HIDDEN",
+                workload: "metrics-collector",
+                namespace: "monitoring",
+                cluster: "ap-southeast-1",
+                pod_name: "pod-hidden-flag",
+                content: `You found the hidden log! Flag: ${flagSecrets[5]}`,
+                duration_seconds: 0.001,
+                status_code: 200,
+                request_id: "req-hidden",
+                trace_id: "trace-hidden",
+                span_id: "span-hidden",
+                parent_span_id: null
+            });
+            
+            // Challenge 7: Chain - 503 with parent_span_id pointing to inventory-sync
+            const parentSpanId = "span-upstream-inventory-cause";
+            logs.push({
+                timestamp: new Date(now - 350000).toISOString(),
+                level: "ERROR",
+                workload: "api-gateway",
+                namespace: "production",
+                cluster: "us-east-1",
+                pod_name: "pod-gw-chain",
+                content: "Upstream service unavailable",
+                duration_seconds: 30.0,
+                status_code: 503,
+                request_id: "req-chain-503",
+                trace_id: "trace-chain-failure",
+                span_id: "span-gw-503",
+                parent_span_id: parentSpanId
+            });
+            
+            // Challenge 8: Aggregation challenge - search-indexer in us-east-1 has count 17
+            for (let i = 0; i < 17; i++) {
+                logs.push({
+                    timestamp: new Date(now - 50000 - i * 1000).toISOString(),
+                    level: i % 2 === 0 ? "ERROR" : "WARN",
+                    workload: "search-indexer",
+                    namespace: "production",
+                    cluster: "us-east-1",
+                    pod_name: i === 0 ? "pod-" + flagSecrets[7].replace(/[{}]/g, '') : pods(),
+                    content: `Search indexing failure ${i}`,
+                    duration_seconds: 1.5 + Math.random(),
+                    status_code: i % 2 === 0 ? 500 : 200,
+                    request_id: `req-idx-${i}`,
+                    trace_id: `trace-idx-${i}`,
+                    span_id: `span-idx-${i}`,
+                    parent_span_id: null
+                });
+            }
+            
+            return logs;
+        }
+        
+        function generateTraces() {
+            const traces = [];
+            const now = Date.now();
+            const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+            const endpoints = ['/api/v1/users', '/api/v1/orders', '/api/v1/payments', '/api/v1/inventory', '/api/v1/search', '/health', '/metrics'];
+            
+            for (let i = 0; i < 500; i++) {
+                const workload = workloads[Math.floor(Math.random() * workloads.length)];
+                const method = methods[Math.floor(Math.random() * methods.length)];
+                traces.push({
+                    trace_id: `trace-${Math.random().toString(36).substring(2, 12)}`,
+                    span_id: `span-${Math.random().toString(36).substring(2, 10)}`,
+                    parent_span_id: Math.random() > 0.3 ? `span-${Math.random().toString(36).substring(2, 10)}` : null,
+                    timestamp: new Date(now - Math.random() * 7200000).toISOString(),
+                    workload: workload,
+                    operation: `${method} ${endpoints[Math.floor(Math.random() * endpoints.length)]}`,
+                    duration_seconds: parseFloat((Math.random() * 5).toFixed(3)),
+                    status_code: statusCodes[Math.floor(Math.random() * statusCodes.length)],
+                    namespace: namespaces[Math.floor(Math.random() * (namespaces.length - 1))],
+                    cluster: clusters[Math.floor(Math.random() * clusters.length)],
+                    error: Math.random() > 0.85
+                });
+            }
+            
+            // Challenge 5: Correlated trace with secret
+            traces.push({
+                trace_id: "trace-correlated-error-xyz",
+                span_id: "span-ch5-inventory",
+                parent_span_id: null,
+                timestamp: new Date(now - 300000).toISOString(),
+                workload: "inventory-sync",
+                operation: "POST /api/v1/inventory/check",
+                duration_seconds: 2.105,
+                status_code: 500,
+                namespace: "production",
+                cluster: "us-east-1",
+                error: true,
+                secret: flagSecrets[4]
+            });
+            
+            // Challenge 7: The upstream cause trace
+            traces.push({
+                trace_id: "trace-chain-failure",
+                span_id: "span-upstream-inventory-cause",
+                parent_span_id: null,
+                timestamp: new Date(now - 350500).toISOString(),
+                workload: "inventory-sync",
+                operation: "GET /api/v1/inventory/status",
+                duration_seconds: 29.5,
+                status_code: 503,
+                namespace: "production",
+                cluster: "us-east-1",
+                error: true,
+                error_message: "Database connection pool exhausted"
+            });
+            
+            return traces;
+        }
+        
+        function generateContent(level, workload) {
+            const templates = {
+                DEBUG: ["Processing request", "Cache lookup for key", "Database query executed in", "Memory check passed"],
+                INFO: ["Request completed successfully", "Health check passed", "Configuration loaded", "Metrics exported"],
+                WARN: ["High latency detected", "Retry attempt", "Rate limit approaching", "Deprecated endpoint called"],
+                ERROR: ["Request failed", "Connection refused", "Timeout exceeded", "Authentication failed"],
+                FATAL: ["Service crash", "Out of memory", "Unrecoverable error", "Panic recovered"]
+            };
+            const msgs = templates[level] || templates.INFO;
+            return `[${workload}] ${msgs[Math.floor(Math.random() * msgs.length)]}`;
+        }
+
+        class GCQLParser {
+            parse(query) {
+                if (!query || query.trim() === '' || query.trim() === '*') return { type: 'matchAll' };
+                const pipeIndex = query.indexOf('|');
+                if (pipeIndex !== -1) {
+                    const filterPart = query.substring(0, pipeIndex).trim();
+                    const pipePart = query.substring(pipeIndex + 1).trim();
+                    return { type: 'pipeline', filter: filterPart ? this.parseFilter(filterPart) : { type: 'matchAll' }, pipes: this.parsePipes(pipePart) };
+                }
+                return this.parseFilter(query);
+            }
+            
+            parseFilter(query) {
+                const orParts = this.splitByOperator(query, ' or ');
+                if (orParts.length > 1) return { type: 'or', filters: orParts.map(p => this.parseFilter(p.trim())) };
+                const andParts = this.splitByOperator(query, ' and ');
+                if (andParts.length > 1) return { type: 'and', filters: andParts.map(p => this.parseFilter(p.trim())) };
+                const terms = this.tokenize(query);
+                if (terms.length > 1) return { type: 'and', filters: terms.map(t => this.parseTerm(t)) };
+                return this.parseTerm(query);
+            }
+            
+            splitByOperator(query, op) {
+                const parts = []; let current = '', depth = 0, inQuote = false, quoteChar = '';
+                for (let i = 0; i < query.length; i++) {
+                    const char = query[i];
+                    if (!inQuote && (char === '"' || char === "'")) { inQuote = true; quoteChar = char; }
+                    else if (inQuote && char === quoteChar) { inQuote = false; }
+                    else if (!inQuote && char === '(') { depth++; }
+                    else if (!inQuote && char === ')') { depth--; }
+                    if (depth === 0 && !inQuote && query.substring(i, i + op.length).toLowerCase() === op) {
+                        parts.push(current); current = ''; i += op.length - 1;
+                    } else { current += char; }
+                }
+                if (current) parts.push(current);
+                return parts;
+            }
+            
+            tokenize(query) {
+                const tokens = []; let current = '', depth = 0, inQuote = false, quoteChar = '';
+                for (let i = 0; i < query.length; i++) {
+                    const char = query[i];
+                    if (!inQuote && (char === '"' || char === "'")) { inQuote = true; quoteChar = char; current += char; }
+                    else if (inQuote && char === quoteChar) { inQuote = false; current += char; }
+                    else if (!inQuote && char === '(') { depth++; current += char; }
+                    else if (!inQuote && char === ')') { depth--; current += char; }
+                    else if (depth === 0 && !inQuote && char === ' ') { if (current.trim()) tokens.push(current.trim()); current = ''; }
+                    else { current += char; }
+                }
+                if (current.trim()) tokens.push(current.trim());
+                return tokens;
+            }
+            
+            parseTerm(term) {
+                term = term.trim();
+                if (term.startsWith('(') && term.endsWith(')')) return this.parseFilter(term.slice(1, -1));
+                if (term.toLowerCase().startsWith('not ')) return { type: 'not', filter: this.parseTerm(term.substring(4)) };
+                if (term.startsWith('!') || term.startsWith('-')) return { type: 'not', filter: this.parseTerm(term.substring(1)) };
+                
+                const colonMatch = term.match(/^([^:=<>!~]+)(:?)(.*)$/);
+                if (colonMatch) {
+                    const [, field, colon, rest] = colonMatch;
+                    if (!colon) {
+                        const opMatch = term.match(/^([^=<>!~]+)(>=|<=|!=|=~|!~|>|<|=)(.+)$/);
+                        if (opMatch) return this.parseComparison(opMatch[1], opMatch[2], opMatch[3]);
+                    }
+                    if (rest) {
+                        if (rest.startsWith('>=')) return this.parseComparison(field, '>=', rest.substring(2));
+                        if (rest.startsWith('<=')) return this.parseComparison(field, '<=', rest.substring(2));
+                        if (rest.startsWith('!=')) return { type: 'not', filter: { type: 'exact', field, value: rest.substring(2) } };
+                        if (rest.startsWith('>')) return this.parseComparison(field, '>', rest.substring(1));
+                        if (rest.startsWith('<')) return this.parseComparison(field, '<', rest.substring(1));
+                        if (rest.startsWith('=')) return { type: 'exact', field, value: this.unquote(rest.substring(1)) };
+                        if (rest.startsWith('~')) return { type: 'regex', field, pattern: this.unquote(rest.substring(1)) };
+                        if (rest.startsWith('!~')) return { type: 'not', filter: { type: 'regex', field, pattern: this.unquote(rest.substring(2)) } };
+                        if (rest.toLowerCase().startsWith('in(')) {
+                            const values = rest.slice(3, -1).split(',').map(v => this.unquote(v.trim()));
+                            return { type: 'in', field, values };
+                        }
+                        if (rest.toLowerCase().startsWith('range')) {
+                            const rangeMatch = rest.match(/range([\[\(])([^,]+),\s*([^\]\)]+)([\]\)])/);
+                            if (rangeMatch) return { type: 'range', field, min: parseFloat(rangeMatch[2]), max: parseFloat(rangeMatch[3]), includeMin: rangeMatch[1] === '[', includeMax: rangeMatch[4] === ']' };
+                        }
+                        if (rest.includes('*')) return { type: 'wildcard', field, pattern: this.unquote(rest) };
+                        return { type: 'phrase', field, value: this.unquote(rest) };
+                    }
+                }
+                return { type: 'freetext', value: this.unquote(term) };
+            }
+            
+            parseComparison(field, op, value) { return { type: 'comparison', field: field.trim(), operator: op, value: parseFloat(value) }; }
+            
+            parsePipes(pipeStr) {
+                const pipes = [];
+                const parts = pipeStr.split('|').map(p => p.trim());
+                for (const part of parts) {
+                    if (part.toLowerCase().startsWith('fields ')) pipes.push({ type: 'fields', fields: part.substring(7).split(',').map(f => f.trim()) });
+                    else if (part.toLowerCase().startsWith('filter ')) pipes.push({ type: 'filter', filter: this.parseFilter(part.substring(7)) });
+                    else if (part.toLowerCase().startsWith('limit ')) pipes.push({ type: 'limit', limit: parseInt(part.substring(6)) });
+                    else if (part.toLowerCase().startsWith('sort by ')) {
+                        const sortMatch = part.match(/sort by \(([^)]+)\)\s*(asc|desc)?/i);
+                        if (sortMatch) pipes.push({ type: 'sort', field: sortMatch[1].trim(), direction: (sortMatch[2] || 'asc').toLowerCase() });
+                    }
+                    else if (part.toLowerCase().startsWith('stats ')) pipes.push(this.parseStats(part));
+                }
+                return pipes;
+            }
+            
+            parseStats(part) {
+                const byMatch = part.match(/stats\s+by\s*\(([^)]+)\)\s*(.*)/i);
+                let byFields = [], funcsPart = part;
+                if (byMatch) { byFields = byMatch[1].split(',').map(f => f.trim()); funcsPart = byMatch[2]; }
+                else { const noByMatch = part.match(/stats\s+(.*)/i); if (noByMatch) funcsPart = noByMatch[1]; }
+                const funcs = [];
+                const funcRegex = /(\w+)\s*\(([^)]*)\)(?:\s+if\s+\(([^)]+)\))?\s*(?:as\s+(\w+))?/gi;
+                let match;
+                while ((match = funcRegex.exec(funcsPart)) !== null) {
+                    funcs.push({ name: match[1].toLowerCase(), field: match[2].trim() || '*', condition: match[3] ? this.parseFilter(match[3]) : null, alias: match[4] || `${match[1]}_${match[2] || 'all'}` });
+                }
+                return { type: 'stats', byFields, funcs };
+            }
+            
+            unquote(str) { str = str.trim(); if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) return str.slice(1, -1); return str; }
+        }
+        
+        class GCQLEvaluator {
+            evaluate(ast, data) {
+                if (ast.type === 'pipeline') {
+                    let results = data.filter(row => this.matchFilter(ast.filter, row));
+                    return this.applyPipes(ast.pipes, results);
+                }
+                return data.filter(row => this.matchFilter(ast, row));
+            }
+            
+            matchFilter(filter, row) {
+                switch (filter.type) {
+                    case 'matchAll': return true;
+                    case 'and': return filter.filters.every(f => this.matchFilter(f, row));
+                    case 'or': return filter.filters.some(f => this.matchFilter(f, row));
+                    case 'not': return !this.matchFilter(filter.filter, row);
+                    case 'phrase': return this.matchPhrase(row, filter.field, filter.value);
+                    case 'exact': return this.matchExact(row, filter.field, filter.value);
+                    case 'wildcard': return this.matchWildcard(row, filter.field, filter.pattern);
+                    case 'regex': return this.matchRegex(row, filter.field, filter.pattern);
+                    case 'comparison': return this.matchComparison(row, filter.field, filter.operator, filter.value);
+                    case 'in': return this.matchIn(row, filter.field, filter.values);
+                    case 'range': return this.matchRange(row, filter);
+                    case 'freetext': return this.matchFreetext(row, filter.value);
+                    default: return true;
+                }
+            }
+            
+            getValue(row, field) { if (field.includes('.')) return field.split('.').reduce((obj, key) => obj && obj[key], row); return row[field]; }
+            matchPhrase(row, field, value) { return String(this.getValue(row, field) || '').toLowerCase().includes(value.toLowerCase()); }
+            matchExact(row, field, value) { return String(this.getValue(row, field) || '').toLowerCase() === value.toLowerCase(); }
+            matchWildcard(row, field, pattern) {
+                const fieldValue = String(this.getValue(row, field) || '').toLowerCase();
+                const regexPattern = pattern.toLowerCase().replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+                return new RegExp(`^${regexPattern}$`).test(fieldValue);
+            }
+            matchRegex(row, field, pattern) { try { return new RegExp(pattern, 'i').test(String(this.getValue(row, field) || '')); } catch { return false; } }
+            matchComparison(row, field, operator, value) {
+                const fieldValue = parseFloat(this.getValue(row, field));
+                if (isNaN(fieldValue)) return false;
+                switch (operator) { case '>': return fieldValue > value; case '>=': return fieldValue >= value; case '<': return fieldValue < value; case '<=': return fieldValue <= value; default: return false; }
+            }
+            matchIn(row, field, values) { const fieldValue = String(this.getValue(row, field) || '').toLowerCase(); return values.some(v => fieldValue === v.toLowerCase()); }
+            matchRange(row, filter) {
+                const fieldValue = parseFloat(this.getValue(row, filter.field));
+                if (isNaN(fieldValue)) return false;
+                const minOk = filter.includeMin ? fieldValue >= filter.min : fieldValue > filter.min;
+                const maxOk = filter.includeMax ? fieldValue <= filter.max : fieldValue < filter.max;
+                return minOk && maxOk;
+            }
+            matchFreetext(row, value) {
+                const content = row.content || row.message || row.operation || '';
+                return String(content).toLowerCase().includes(value.toLowerCase());
+            }
+            
+            applyPipes(pipes, data) {
+                let results = data;
+                for (const pipe of pipes) {
+                    switch (pipe.type) {
+                        case 'fields': results = results.map(row => { const newRow = {}; for (const field of pipe.fields) if (row.hasOwnProperty(field)) newRow[field] = row[field]; return newRow; }); break;
+                        case 'filter': results = results.filter(row => this.matchFilter(pipe.filter, row)); break;
+                        case 'limit': results = results.slice(0, pipe.limit); break;
+                        case 'sort': results = [...results].sort((a, b) => { const aVal = this.getValue(a, pipe.field), bVal = this.getValue(b, pipe.field); const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0; return pipe.direction === 'desc' ? -cmp : cmp; }); break;
+                        case 'stats': results = this.applyStats(pipe, results); break;
+                    }
+                }
+                return results;
+            }
+            
+            applyStats(pipe, data) {
+                const groups = new Map();
+                for (const row of data) {
+                    const key = pipe.byFields.map(f => this.getValue(row, f)).join('|');
+                    if (!groups.has(key)) {
+                        const groupRow = {};
+                        pipe.byFields.forEach(f => groupRow[f] = this.getValue(row, f));
+                        pipe.funcs.forEach(func => groupRow[func.alias] = { values: [], func });
+                        groups.set(key, groupRow);
+                    }
+                    const group = groups.get(key);
+                    for (const func of pipe.funcs) {
+                        if (!func.condition || this.matchFilter(func.condition, row)) {
+                            const value = func.field === '*' ? 1 : this.getValue(row, func.field);
+                            group[func.alias].values.push(value);
+                        }
+                    }
+                }
+                return Array.from(groups.values()).map(group => {
+                    const result = {};
+                    for (const [key, value] of Object.entries(group)) {
+                        result[key] = value && value.values !== undefined ? this.computeAggregation(value.func.name, value.values) : value;
+                    }
+                    return result;
+                });
+            }
+            
+            computeAggregation(funcName, values) {
+                const nums = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
+                switch (funcName) {
+                    case 'count': return values.length;
+                    case 'sum': return nums.reduce((a, b) => a + b, 0);
+                    case 'avg': return nums.length ? parseFloat((nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(3)) : 0;
+                    case 'min': return nums.length ? Math.min(...nums) : 0;
+                    case 'max': return nums.length ? Math.max(...nums) : 0;
+                    case 'count_uniq': return new Set(values).size;
+                    default: return values.length;
+                }
+            }
+        }
+
+        let currentDataType = 'logs', viewMode = 'table', logsData = [], tracesData = [], solvedChallenges = new Set();
+        const parser = new GCQLParser(), evaluator = new GCQLEvaluator();
+
+        function init() {
+            logsData = generateLogs();
+            tracesData = generateTraces();
+            const saved = localStorage.getItem('gcql_ctf_progress_v2');
+            if (saved) solvedChallenges = new Set(JSON.parse(saved));
+            renderChallenges();
+            updateFlagCounter();
+            runQuery();
+            document.getElementById('queryInput').addEventListener('keydown', (e) => { if (e.ctrlKey && e.key === 'Enter') runQuery(); });
+        }
+
+        window.switchDataType = function(type) {
+            currentDataType = type;
+            document.querySelectorAll('.data-type-tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.data-type-tabs .tab[data-type="${type}"]`).classList.add('active');
+            runQuery();
+        };
+
+        window.setViewMode = function(mode) {
+            viewMode = mode;
+            document.getElementById('tableViewBtn').classList.toggle('active', mode === 'table');
+            document.getElementById('jsonViewBtn').classList.toggle('active', mode === 'json');
+            document.getElementById('resultsTable').style.display = mode === 'table' ? 'table' : 'none';
+            document.getElementById('jsonView').style.display = mode === 'json' ? 'block' : 'none';
+        };
+
+        window.runQuery = function() {
+            const query = document.getElementById('queryInput').value.trim();
+            const data = currentDataType === 'logs' ? logsData : tracesData;
+            const errorDiv = document.getElementById('errorMessage');
+            const startTime = performance.now();
+            try {
+                const ast = parser.parse(query);
+                const results = evaluator.evaluate(ast, data);
+                errorDiv.style.display = 'none';
+                displayResults(results);
+                document.getElementById('queryTime').textContent = ` (${(performance.now() - startTime).toFixed(2)}ms)`;
+            } catch (error) {
+                errorDiv.textContent = `Query Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        };
+
+        function displayResults(results) {
+            document.getElementById('resultsCount').textContent = results.length;
+            if (viewMode === 'json') { document.getElementById('jsonView').textContent = JSON.stringify(results.slice(0, 100), null, 2); return; }
+            const thead = document.getElementById('tableHeader'), tbody = document.getElementById('tableBody');
+            thead.innerHTML = ''; tbody.innerHTML = '';
+            if (results.length === 0) { tbody.innerHTML = '<tr><td colspan="100" style="text-align: center; color: #6e7681;">No results found</td></tr>'; return; }
+            const columns = [...new Set(results.flatMap(r => Object.keys(r)))];
+            const headerRow = document.createElement('tr');
+            columns.forEach(col => { const th = document.createElement('th'); th.textContent = col; headerRow.appendChild(th); });
+            thead.appendChild(headerRow);
+            results.slice(0, 100).forEach(row => {
+                const tr = document.createElement('tr');
+                columns.forEach(col => { const td = document.createElement('td'); td.textContent = row[col] !== undefined ? String(row[col]) : ''; td.title = row[col] !== undefined ? String(row[col]) : ''; tr.appendChild(td); });
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.submitFlag = function(challengeId) {
+            const input = document.getElementById(`flag-input-${challengeId}`);
+            const submittedFlag = input.value.trim();
+            const expectedFlag = flagSecrets[challengeId - 1];
+            
+            if (submittedFlag === expectedFlag) {
+                solvedChallenges.add(challengeId);
+                saveProgress();
+                renderChallenges();
+                updateFlagCounter();
+                alert('Correct! Challenge solved!');
+            } else {
+                input.classList.add('wrong-flag');
+                setTimeout(() => input.classList.remove('wrong-flag'), 500);
+            }
+        };
+
+        window.handleFlagKeypress = function(event, challengeId) {
+            if (event.key === 'Enter') {
+                submitFlag(challengeId);
+            }
+        };
+
+        function renderChallenges() {
+            document.getElementById('challengesList').innerHTML = challenges.map(c => `
+                <div class="challenge-card ${solvedChallenges.has(c.id) ? 'solved' : ''}" id="challenge-${c.id}">
+                    <div class="challenge-header">
+                        <span class="challenge-title">${c.title} <span class="solved-badge">✓</span></span>
+                        <span class="challenge-difficulty difficulty-${c.difficulty}">${c.difficulty}</span>
+                    </div>
+                    <div class="challenge-description">${c.description}</div>
+                    <div class="challenge-hint" onclick="toggleHint(${c.id})">💡 Show Hint<div class="hint-text" id="hint-${c.id}">${c.hint}</div></div>
+                    <div class="flag-input-section">
+                        <input type="text" class="flag-input" id="flag-input-${c.id}" placeholder="Enter flag (GC{...})" onkeypress="handleFlagKeypress(event, ${c.id})">
+                        <button class="btn-submit" onclick="submitFlag(${c.id})">Submit</button>
+                    </div>
+                    <div class="challenge-solved-flag">${flagSecrets[c.id - 1]}</div>
+                </div>
+            `).join('');
+        }
+
+        window.toggleHint = function(id) { document.getElementById(`hint-${id}`).classList.toggle('visible'); };
+        function updateFlagCounter() { document.getElementById('flagCount').textContent = solvedChallenges.size; document.getElementById('totalFlags').textContent = challenges.length; }
+        function saveProgress() { localStorage.setItem('gcql_ctf_progress_v2', JSON.stringify([...solvedChallenges])); }
+        window.resetProgress = function() { if (confirm('Reset all progress?')) { solvedChallenges.clear(); localStorage.removeItem('gcql_ctf_progress_v2'); renderChallenges(); updateFlagCounter(); } };
+        window.clearQuery = function() { document.getElementById('queryInput').value = ''; runQuery(); };
+
+        window.onload = init;
+    })();
+    </script>
+</body>
+</html>
